@@ -1,0 +1,11 @@
+{
+  "base_treasure": 3,
+  "roomContent": [
+    ["empty", 4],
+    ["monster", 4],
+    ["treasure", 3],
+    ["puzzle", 2],
+    ["key", 2],
+    ["level", 1]
+  ]
+}
