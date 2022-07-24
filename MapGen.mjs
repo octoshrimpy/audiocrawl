@@ -164,10 +164,9 @@ class Dungeon {
   findCell(x=0, y=0) {
     return this.cells.find(function(cell) {
       return cell.x == x && cell.y == y
-    })
+    }) || false
   }
 
-  // Unused, but helpful for debugging
   getCell(id) {
     return this.cells.find(function(cell) {
       return cell.id == id
