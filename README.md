@@ -6,7 +6,7 @@ The game is still in development
 
 ---
 
-
+```
 [ ] todo
 [?] think
 [o] doing
@@ -26,7 +26,7 @@ The game is still in development
 [ ] multi-monster combat
 [ ] different monster types
 [ ] potions, edibles, throwables
-
+```
 
 
 
