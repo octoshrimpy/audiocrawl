@@ -4,13 +4,12 @@ class Living {
 
   constructor() {}
 
-  takeDamage(amt) {
-      this.health = Math.max(this.health - amt, 0)
-      return this.health
+  hurt(amt) {
+    this.health = Math.max(this.health - amt, 0)
   }
 
   heal(amt) {
-    this.health = Math.max(this.health + amt, this.maxHealth)
+    this.health = Math.min(this.health + amt, this.maxHealth)
   }
 }
 
@@ -90,27 +89,37 @@ let play = {
 let game = {
   nav(dir) {
     let newCell
+
+    if (currentCell.roomType.type == "monster") {
+      let monsterDmg = currentCell.monsterHitsFor || this.getDmgFrom(currentCell.roomType.monster)
+      let dmgTaken = Math.ceil(monsterDmg - lib.rand(monsterDmg - 1))
+      this.player.hurt(dmgTaken)
+      noctis.send(`bypassing monster, took ${dmgTaken} damage!`)
+      delete currentCell.monsterHitsFor
+    }
+
     switch (dir) {
       case "up":
-      noctis.send("moving north")
+      this.lastLog = "moved north"
         newCell = mapgen.getCell(currentCell.n)
         break
       case "right":
-      noctis.send("moving east")
+      this.lastLog = "moved east"
         newCell = mapgen.getCell(currentCell.e)
         break
       case "down":
-      noctis.send("moving south")
+      this.lastLog = "moved south"
         newCell = mapgen.getCell(currentCell.s)
         break
       case "left":
-      noctis.send("moving west")
+      this.lastLog = "moved west"
         newCell = mapgen.getCell(currentCell.w)
         break
     }
 
     if (newCell == undefined) {
-      noctis.send("cannot move there!")
+      this.lastLog += ", cannot move there!"
+      this.print()
       return
     }
 
@@ -119,55 +128,65 @@ let game = {
 
   moveToCell(cell) {
     currentCell = cell
-    noctis.clearConsole(99)
+    // noctis.clearConsole(99)
     this.print()
     this.enterRoom()
   },
 
   enterRoom() {
-  
-    switch (currentCell.type) {
+    switch (currentCell.roomType.type) {
       case "treasure":
-        this.player.money += currentCell.amount
-        noctis.send(`aquired ${currentCell.amount} gold`)
-        delete currentCell.amount
-        currentCell.type = "empty"
+        this.player.money += currentCell.roomType.amount
+        this.lastLog = `aquired ${currentCell.roomType.amount} gold`
+        delete currentCell.roomType.amount
+        currentCell.roomType.type = "empty"
         break
       case "monster":
-        noctis.send("found monster")
-        this.monsterHitsFor = this.getDmgFrom(currentCell.monster)
+        currentCell.monsterHitsFor = currentCell.monsterHitsFor || this.getDmgFrom(currentCell.roomType.monster)
+        this.lastLog = `found monster: ${currentCell.monsterHitsFor} / ${currentCell.roomType.monster.health}`
         break
     }
   },
 
   interact() {
-    switch (currentCell.type) {
+    switch (currentCell.roomType.type) {
       case "empty":
-        noctis.send("nothing of importance")
+        this.lastLog = "nothing of importance"
         break
       case "ascend":
-        noctis.send("no supported yet")
+        this.lastLog = "not supported yet"
         break
       case "descend":
-        noctis.send("no supported yet")
+        this.lastLog = "not supported yet"
+        break
+      case "levelup":
+        this.lastLog = "not supported yet"
         break
       case "monster":
-        
-        this.playerHitsFor =  this.getDmgFrom(currentCell.player)
+        this.playerHitsFor =  this.getDmgFrom(this.player)
+        // do math here for who takes damage
 
+        
         break
       case "fountain":
         this.player.heal(999)
+        // noctis.clearConsole(99)
         break
     }
+
+    this.print()
   },
 
   print() {    
     // noctis.send(mapgen.showHex(" ", " "))
-    noctis.send(mapgen.showMap(" ", currentCell))
-    noctis.send(mapgen.showHex(" ", " "))
+    // noctis.send(mapgen.showMap(" ", currentCell))
     noctis.send("\n")
-    noctis.send("cell:", currentCell)
+    noctis.send(mapgen.showHex(" ", " "))
+    noctis.send("cell:", currentCell.hex)
+    noctis.send("type:", currentCell.roomType)
+    noctis.send("player:", game.player)
+    noctis.send("\n")
+    noctis.send(game.lastLog)
   },
 
   getDmgFrom(entity) {
@@ -197,28 +216,30 @@ game.print()
 
 // on any data into stdin
 stdin.on( 'data', function( key ){
-  // ctrl-c ( end of text )
+  // console.log(key)
   if (key == '\u001B\u005B\u0041') {
     game.nav("up")
-
+    return
   }
   if (key == '\u001B\u005B\u0043') {
     game.nav("right")
-
+    return
   }
   if (key == '\u001B\u005B\u0042') {
     game.nav("down")
-
-  }
+    return
+  } 
   if (key == '\u001B\u005B\u0044') {
     game.nav("left")
-
+    return
+  }
+  // ctrl-c ( end of text )
+  if ( key === '\u0003' ) {
+    process.exit()
   }
   if (key = ' ') {
     game.interact()
-  }
-  if ( key === '\u0003' ) {
-    process.exit()
+    return
   }
 
   // used to check keys
