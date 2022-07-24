@@ -11,7 +11,7 @@ class Cell {
 
     // symbol within cell for visual debugging
     this.symbol = ""
-    
+
     this.n = false
     this.e = false
     this.s = false
@@ -191,15 +191,14 @@ class Dungeon {
     return map
   }
 
-  toCells(cell_width=5) { // Must be an odd number > 1
+  toCells(cell_width=5, spacer = " ") { // Must be an odd number > 1
     let dungeon = this
     let compact = this.toHex()
     let half_cell = Math.floor(cell_width / 2)
-    console.log(dungeon)
 
     let map = Array(dungeon.height * cell_width).fill().map(function(_, y) {
       return Array(dungeon.width * cell_width).fill().map(function(_, x) {
-        return " "
+        return spacer
       })
     })
 
@@ -230,19 +229,19 @@ class Dungeon {
             }
           })
         })
-        map[center_y][center_x] = "g"
+        // map[center_y][center_x] = "g"
       })
     })
 
     return map
   }
 
-  showCells() {
-    return this.toCells().map(function(row) { return row.join(" ") }).join("\n")
+  showCells(spacer = " ") {
+    return this.toCells(5, spacer).map(function(row) { return row.join(spacer) }).join("\n")
   }
 
-  showHex() {
-    return this.toHex().map(function(row) { return row.join(" ") }).join("\n")
+  showHex(spacer = " ") {
+    return this.toHex().map(function(row) { return row.join(spacer) }).join("\n")
   }
 }
 
