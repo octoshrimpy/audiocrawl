@@ -9,8 +9,10 @@ class Cell {
     // ID is unused, but helpful for debugging
     this.id = id
 
-    // symbol within cell for visual debugging
+    // synbol within cell for visual debugging
     this.symbol = ""
+    this.roomContents
+    this.roomType
 
     this.n = false
     this.e = false
@@ -173,13 +175,13 @@ class Dungeon {
     })
   }
 
-  toHex() {
+  toHex(emptyCell = "0") {
     let dungeon = this
     if (this.cells.length == 0) { this.generate() }
 
     let map = Array(dungeon.height).fill().map(function(_, y) {
       return Array(dungeon.width).fill().map(function(_, x) {
-        return "0"
+        return emptyCell
       })
     })
 
@@ -190,7 +192,7 @@ class Dungeon {
     return map
   }
 
-  toCells(cell_width=5, spacer = " ") { // Must be an odd number > 1
+  toCells(cell_width=5, spacer = " ", currentCell = null) { // Must be an odd number > 1
     let dungeon = this
     let compact = this.toHex()
     let half_cell = Math.floor(cell_width / 2)
@@ -218,6 +220,7 @@ class Dungeon {
         if (e) { map[center_y][center_x + half_cell] = "#" }
         if (s) { map[center_y + half_cell][center_x] = "#" }
         if (w) { map[center_y][center_x - half_cell] = "#" }
+
         // Box
         Array(cell_width - 2).fill().forEach(function(_, cell_y) {
           Array(cell_width - 2).fill().forEach(function(_, cell_x) {
@@ -239,18 +242,16 @@ class Dungeon {
     return this.toCells(5, spacer).map(function(row) { return row.join(spacer) }).join("\n")
   }
 
-  showHex(spacer = " ") {
-    return this.toHex().map(function(row) { return row.join(spacer) }).join("\n")
+  showHex(spacer = " ", emptyCell = "0") {
+    return this.toHex(emptyCell).map(function(row) { return row.join(spacer) }).join("\n")
+  }
+
+  showMap(currentCell) {
+    
+    return this.toCells(5, " ", currentCell).map(function(row) { return row.join(" ") }).join("\n")
+
   }
 }
-
-
-// let dungeon = new Dungeon(6)
-
-// console.log(dungeon)
-
-// console.log(dungeon.toHex().map(function(row) { return row.join(" ") }).join("\n"));
-// console.log(dungeon.toCells().map(function(row) { return row.join(" ") }).join("\n"));
 
 
 let mapgen = new Dungeon() 

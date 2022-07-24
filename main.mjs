@@ -41,8 +41,25 @@ mapgen.cells.forEach(cell => {
   if (cell.w == true) {cell.w = wCell.id || false}
 })
 
+let roomsToAdd = [
+  {type: "fountain"},
+  {type: "monster", reward: {type: "gold", amount: 2}},
+  {type: "levelup"},
+  {type: "descend"}
+]
 
 let mapStart = lib.sample(mapgen.cells)
+mapStart.roomType = {type: "ascend"}
+
+mapgen.cells.forEach(room => {
+  if (room.roomType) {return}
+
+  // remove from available rooms
+  let roomType = lib.sample(roomsToAdd) || {type: "empty"}
+  roomsToAdd.splice(roomsToAdd.indexOf(roomType), 1)
+
+  room.roomType = roomType
+})
 
 let currentCell = mapStart // cell, not id
 
@@ -51,15 +68,27 @@ let game = {
     let newCell
     switch (dir) {
       case "up":
+      noctis.send("moving north")
         newCell = mapgen.getCell(currentCell.n)
+        break
       case "right":
+      noctis.send("moving east")
         newCell = mapgen.getCell(currentCell.e)
-      case "left":
-        newCell = mapgen.getCell(currentCell.s)
+        break
       case "down":
+      noctis.send("moving south")
+        newCell = mapgen.getCell(currentCell.s)
+        break
+      case "left":
+      noctis.send("moving west")
         newCell = mapgen.getCell(currentCell.w)
+        break
     }
-    console.log(newCell)
+
+    if (newCell == undefined) {
+      noctis.send("cannot move there!")
+      return
+    }
 
     this.moveToCell(newCell)
   },
@@ -71,7 +100,9 @@ let game = {
   },
 
   print() {    
-    noctis.send(mapgen.showHex())
+    // noctis.send(mapgen.showHex(" ", " "))
+    noctis.send(mapgen.showMap(" ", currentCell))
+    noctis.send(mapgen.showHex(" ", " "))
     noctis.send("\n")
     noctis.send("cell:", currentCell)
   }
@@ -81,9 +112,6 @@ let game = {
 
 // gameloop
 var stdin = process.stdin
-
-
-// wait for user input
 
 // without this, we would only get streams once enter is pressed
 stdin.setRawMode( true )
@@ -96,6 +124,7 @@ stdin.resume()
 stdin.setEncoding( 'utf8' )
 
 // print out dungeon
+noctis.clearConsole(99)
 game.print()
 
 // on any data into stdin
