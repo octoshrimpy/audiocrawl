@@ -231,7 +231,6 @@ class Dungeon {
             }
           })
         })
-        // map[center_y][center_x] = "g"
       })
     })
 

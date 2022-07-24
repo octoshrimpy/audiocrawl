@@ -1,5 +1,23 @@
-class Living {}
-class Player extends Living {}
+class Living {
+  health = 4
+  maxHealth = 4
+
+  constructor() {}
+
+  takeDamage(amt) {
+      this.health = Math.max(this.health - amt, 0)
+      return this.health
+  }
+
+  heal(amt) {
+    this.health = Math.max(this.health + amt, this.maxHealth)
+  }
+}
+
+class Player extends Living {
+  money = 0
+}
+
 class Monster extends Living {}
 
 class Item {}
@@ -43,9 +61,10 @@ mapgen.cells.forEach(cell => {
 
 let roomsToAdd = [
   {type: "fountain"},
-  {type: "monster", reward: {type: "gold", amount: 2}},
+  {type: "monster", monster: {health: 4}, reward: {type: "gold", amount: 2}},
   {type: "levelup"},
-  {type: "descend"}
+  {type: "descend"},
+  {type: "treasure", amount: 1}
 ]
 
 let mapStart = lib.sample(mapgen.cells)
@@ -62,6 +81,11 @@ mapgen.cells.forEach(room => {
 })
 
 let currentCell = mapStart // cell, not id
+
+// interface for sending stuff to the player
+let play = {
+  
+}
 
 let game = {
   nav(dir) {
@@ -97,6 +121,45 @@ let game = {
     currentCell = cell
     noctis.clearConsole(99)
     this.print()
+    this.enterRoom()
+  },
+
+  enterRoom() {
+  
+    switch (currentCell.type) {
+      case "treasure":
+        this.player.money += currentCell.amount
+        noctis.send(`aquired ${currentCell.amount} gold`)
+        delete currentCell.amount
+        currentCell.type = "empty"
+        break
+      case "monster":
+        noctis.send("found monster")
+        this.monsterHitsFor = this.getDmgFrom(currentCell.monster)
+        break
+    }
+  },
+
+  interact() {
+    switch (currentCell.type) {
+      case "empty":
+        noctis.send("nothing of importance")
+        break
+      case "ascend":
+        noctis.send("no supported yet")
+        break
+      case "descend":
+        noctis.send("no supported yet")
+        break
+      case "monster":
+        
+        this.playerHitsFor =  this.getDmgFrom(currentCell.player)
+
+        break
+      case "fountain":
+        this.player.heal(999)
+        break
+    }
   },
 
   print() {    
@@ -105,10 +168,15 @@ let game = {
     noctis.send(mapgen.showHex(" ", " "))
     noctis.send("\n")
     noctis.send("cell:", currentCell)
+  },
+
+  getDmgFrom(entity) {
+    return lib.rand(entity.health - 1) + 1
   }
 
 }
 
+game.player = new Player()
 
 // gameloop
 var stdin = process.stdin
@@ -146,8 +214,14 @@ stdin.on( 'data', function( key ){
     game.nav("left")
 
   }
+  if (key = ' ') {
+    game.interact()
+  }
   if ( key === '\u0003' ) {
     process.exit()
   }
+
+  // used to check keys
+  // console.log(JSON.stringify(key))
 
 })
