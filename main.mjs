@@ -163,9 +163,45 @@ let game = {
         this.lastLog = "not supported yet"
         break
       case "monster":
-        this.playerHitsFor =  this.getDmgFrom(this.player)
+        this.playerHitsFor = this.getDmgFrom(this.player)
+        noctis.send("attacking for", this.playerHitsFor)
         // do math here for who takes damage
+        let calc = this.playerHitsFor - currentCell.monsterHitsFor
+        if (calc = 0) {
+          // tie
+          let coin = !!lib.rand(1)
+          let dmg = lib.rand(1, 3)
+          let msg = coin ? `both take ${dmg} damage` : "no damage taken"
+          
+          noctis.send("tie!", msg)
+          
+        } else
+        if (calc > 0) {
+          // player wins
+          let dmg = Math.abs(calc)
+          noctis.send(`dealt ${dmg} of damage to monster`)
+          //@todo convert monster to new Monster()
+          currentCell.roomType.monster.health -= dmg
+          delete currentCell.monsterHitsFor
 
+          if (currentCell.roomType.monster.health < 1) {
+            noctis.send(`killed monster!`)
+            //@todo I need an inventory controller
+            this.player.money += currentCell.roomType.monster.reward.amount
+            currentCell.roomType.type = "empty"
+            delete currentCell.roomType.monster.reward
+          }
+        } else {
+          // monster wins
+          let dmg = Math.abs(calc)
+          noctis.send(`taken ${dmg} of damage from monster`)
+          this.player.hurt(dmg)
+          
+          if (this.player.health < 1) {
+            noctis.send(`died to monster!`)
+            this.end()
+          }
+        }
         
         break
       case "fountain":
@@ -191,6 +227,10 @@ let game = {
 
   getDmgFrom(entity) {
     return lib.rand(entity.health - 1) + 1
+  },
+
+  end(){
+    process.exit()
   }
 
 }
@@ -235,7 +275,7 @@ stdin.on( 'data', function( key ){
   }
   // ctrl-c ( end of text )
   if ( key === '\u0003' ) {
-    process.exit()
+    game.end()
   }
   if (key = ' ') {
     game.interact()
