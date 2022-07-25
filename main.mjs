@@ -145,7 +145,8 @@ let game = {
         logs.push("not supported yet")
         break
       case "descend":
-        logs.push("not supported yet")
+        this.genNewLevel()
+        logs.push("descended the stairs")
         break
       case "levelup":
         this.player.maxHealth += 1
@@ -241,8 +242,8 @@ let game = {
 
   genNewLevel() {
     let newGame = (new mapgen()).generate(6)
-    game.levels.push(newGame)
     this.currentLevel = newGame
+    game.levels.push(this.currentLevel)
   }
 
 }
