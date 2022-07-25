@@ -48,7 +48,7 @@ let noctis = new Noctis()
 //@todo move logs into game
 let logs = []
 
-const roomsToAdd = [
+let roomsToAdd = [
   {type: "fountain"},
   {type: "monster", monster: {health: 4}, reward: {type: "gold", amount: 2}},
   {type: "levelup"},
@@ -80,7 +80,7 @@ let game = {
         this.end()
       }
 
-      delete this.currentCell.monsterHitsFor
+      // delete this.currentCell.monsterHitsFor
     }
 
     let msg
@@ -105,9 +105,13 @@ let game = {
 
     if (newCell == undefined) {
       msg += ", cannot move there!"
-      logs.push(msg)
+    }
+
+    logs.push(msg)
+    
+    if (newCell == undefined) { 
       this.print()
-      return
+      return 
     }
 
     this.moveToCell(newCell)
@@ -128,6 +132,7 @@ let game = {
         delete this.currentCell.roomType.amount
         this.currentCell.roomType.type = "empty"
         break
+
       case "monster":
         this.currentCell.monsterHitsFor = this.currentCell.monsterHitsFor || this.getDmgFrom(this.currentCell.roomType.monster)
         logs.push(`found monster: ${this.currentCell.monsterHitsFor} / ${this.currentCell.roomType.monster.health}`)
@@ -140,18 +145,22 @@ let game = {
       case "empty":
         logs.push("nothing of importance")
         break
+
       case "ascend":
         logs.push("not supported yet")
         break
+      
       case "descend":
         this.genNewLevel()
         logs.push("descended the stairs")
         break
+      
       case "levelup":
         this.player.maxHealth += 1
         logs.push(`leveled up to ${this.player.maxHealth}!`)
         this.currentCell.roomType.type = "empty"
         break
+      
       case "monster":
         this.playerHitsFor = Math.ceil(this.getDmgFrom(this.player))
         this.currentCell.monsterHitsFor = Math.ceil(this.currentCell.monsterHitsFor) || Math.ceil(this.getDmgFrom(this.currentCell.roomType.monster))
@@ -166,6 +175,8 @@ let game = {
           let coin = !!lib.rand(1)
           dmg = lib.rand(1, 3)
           let msg = coin ? `both take ${dmg} damage` : "no damage taken"
+          //@fixme this isn't working, always no damage taken
+          //@todo do damage to both parties if coin gods deem it so 
           
           logs.push(`tie! ${msg}`)
           
@@ -217,11 +228,11 @@ let game = {
     // noctis.send(this.currentLevel.showMap(" ", this.currentCell))
     // noctis.send("\n")
 
-    noctis.clearConsole(20)
+    // noctis.clearConsole(20)
 
     noctis.send(this.currentLevel.showHex(" ", " "))
     noctis.send("cell:", this.currentCell.hex)
-    noctis.send("type:", this.currentCell.roomType)
+    noctis.send("type:", this.currentCell.roomType.type)
     noctis.send("player:", game.player)
     noctis.send("\n")
 
@@ -241,21 +252,21 @@ let game = {
   },
 
   genNewLevel() {
-    // console.log(JSON.stringify(roomsToAdd))
-    let _rooms = roomsToAdd.slice()
-    //@fixme rocco why does this _rooms var get modified when generating
-    // the second dungeon level??? aargh
-
-    let newGame = (new mapgen()).generate(6)
-    this.currentLevel = newGame
+    let newLevel = (new mapgen()).generate(6)
+    this.currentLevel = newLevel
 
     let mapStart = lib.sample(this.currentLevel.cells)
     mapStart.roomType = {type: "ascend"}
 
     this.currentCell = mapStart // cell, not id
+  
+    console.log(roomsToAdd)
+    let _rooms = lib.cloneDeep(roomsToAdd)
+    console.log(_rooms)
+    //@fixme rocco why does this _rooms var get modified when generating
+    // the second dungeon level??? aargh
 
     this.currentLevel.cells.forEach(cell => {
-      // console.log(cell)
       let nCell = this.currentLevel.cells.filter(i => i.x == cell.x && i.y == cell.y - 1 && cell.y - 1 >= 0)[0]
       let eCell = this.currentLevel.cells.filter(i => i.x == cell.x + 1 && i.y == cell.y && cell.x + 1 >= 0)[0]
       let sCell = this.currentLevel.cells.filter(i => i.x == cell.x && i.y == cell.y + 1 && cell.y + 1 >= 0)[0]
@@ -265,16 +276,14 @@ let game = {
       if (cell.e == true) {cell.e = eCell.id || false}
       if (cell.s == true) {cell.s = sCell.id || false}
       if (cell.w == true) {cell.w = wCell.id || false}
-    })
 
-    this.currentLevel.cells.forEach(room => {
-      if (room.roomType) {return}
+      if (cell.roomType) {return}
 
       // remove from available rooms
-      let roomType = lib.sample(_rooms) || {type: "empty"}
+      let roomType = lib.sample(_rooms) 
       _rooms.splice(_rooms.indexOf(roomType), 1)
 
-      room.roomType = roomType
+      cell.roomType = roomType
     })
 
     game.levels.push(this.currentLevel)

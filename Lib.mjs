@@ -16,4 +16,9 @@ export default class Lib {
     return arr[this.rand(arr.length)]
   }
 
+  cloneDeep(arr) {
+    return arr.map(item => Array.isArray(item) ? this.cloneDeep(item) : item)
+
+  }
+
 }
