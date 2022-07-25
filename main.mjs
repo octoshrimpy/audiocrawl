@@ -15,8 +15,8 @@ class Living {
 
 class Player extends Living {
   money = 0
-  maxHealth = 10
-  health = 10
+  maxHealth = 6
+  health = 6
 }
 
 class Monster extends Living {}
@@ -177,7 +177,9 @@ let game = {
         logs.push("not supported yet")
         break
       case "levelup":
-        logs.push("not supported yet")
+        this.player.maxHealth += 1
+        logs.push(`leveled up to ${this.player.maxHealth}!`)
+        currentCell.roomType.type = "empty"
         break
       case "monster":
         this.playerHitsFor = Math.ceil(this.getDmgFrom(this.player))
@@ -209,7 +211,8 @@ let game = {
             //@todo I need an inventory controller
             this.player.money += currentCell.roomType.reward.amount
             currentCell.roomType.type = "empty"
-            delete currentCell.roomType.monster.reward
+            delete currentCell.roomType.reward
+            delete currentCell.roomType.monster
           }
         } else {
           // monster wins
