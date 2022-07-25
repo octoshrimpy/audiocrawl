@@ -118,6 +118,8 @@ class Dungeon {
     while (this.cells.length < this.cell_count) { Algorithm.genCell(this) }
     // Fix map so that arrays don't have negative values
     this.calculateOffsets()
+
+    return this
   }
 
   calculateOffsets() {
@@ -253,5 +255,5 @@ class Dungeon {
 }
 
 
-let mapgen = new Dungeon() 
-export default mapgen
+// let mapgen = new Dungeon() 
+export default Dungeon
