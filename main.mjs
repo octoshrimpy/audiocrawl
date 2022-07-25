@@ -15,6 +15,8 @@ class Living {
 
 class Player extends Living {
   money = 0
+  maxHealth = 10
+  health = 10
 }
 
 class Monster extends Living {}
@@ -44,6 +46,9 @@ let lib = new Lib()
 let noctis = new Noctis()
 
 mapgen.generate(6)
+
+//@todo move logs into game
+let logs = []
 
 mapgen.cells.forEach(cell => {
   // console.log(cell)
@@ -81,11 +86,13 @@ mapgen.cells.forEach(room => {
 
 let currentCell = mapStart // cell, not id
 
-// interface for sending stuff to the player
+// interface for sending information to the player (audio)
+// @todo make this its own class
 let play = {
   
 }
 
+//@todo convert game into proper class Game
 let game = {
   nav(dir) {
     let newCell
@@ -94,31 +101,40 @@ let game = {
       let monsterDmg = currentCell.monsterHitsFor || this.getDmgFrom(currentCell.roomType.monster)
       let dmgTaken = Math.ceil(monsterDmg - lib.rand(monsterDmg - 1))
       this.player.hurt(dmgTaken)
-      noctis.send(`bypassing monster, took ${dmgTaken} damage!`)
+      logs.push(`bypassing monster, took ${dmgTaken} damage!`)
+
+      //@fixme this is wet code (see below)
+      if (this.player.health < 1) {
+        logs.push(`died to monster!`)
+        this.end()
+      }
+
       delete currentCell.monsterHitsFor
     }
 
-    switch (dir) {
+    let msg
+    switch (dir) { //@todo there's gotte be a better way to do this, very wet
       case "up":
-      this.lastLog = "moved north"
+      msg = "moved north"
         newCell = mapgen.getCell(currentCell.n)
         break
       case "right":
-      this.lastLog = "moved east"
+      msg = "moved east"
         newCell = mapgen.getCell(currentCell.e)
         break
       case "down":
-      this.lastLog = "moved south"
+      msg = "moved south"
         newCell = mapgen.getCell(currentCell.s)
         break
       case "left":
-      this.lastLog = "moved west"
+      msg = "moved west"
         newCell = mapgen.getCell(currentCell.w)
         break
     }
 
     if (newCell == undefined) {
-      this.lastLog += ", cannot move there!"
+      msg += ", cannot move there!"
+      logs.push(msg)
       this.print()
       return
     }
@@ -131,19 +147,20 @@ let game = {
     // noctis.clearConsole(99)
     this.print()
     this.enterRoom()
+    this.print()
   },
 
   enterRoom() {
     switch (currentCell.roomType.type) {
       case "treasure":
         this.player.money += currentCell.roomType.amount
-        this.lastLog = `aquired ${currentCell.roomType.amount} gold`
+        logs.push(`aquired ${currentCell.roomType.amount} gold`)
         delete currentCell.roomType.amount
         currentCell.roomType.type = "empty"
         break
       case "monster":
         currentCell.monsterHitsFor = currentCell.monsterHitsFor || this.getDmgFrom(currentCell.roomType.monster)
-        this.lastLog = `found monster: ${currentCell.monsterHitsFor} / ${currentCell.roomType.monster.health}`
+        logs.push(`found monster: ${currentCell.monsterHitsFor} / ${currentCell.roomType.monster.health}`)
         break
     }
   },
@@ -151,62 +168,70 @@ let game = {
   interact() {
     switch (currentCell.roomType.type) {
       case "empty":
-        this.lastLog = "nothing of importance"
+        logs.push("nothing of importance")
         break
       case "ascend":
-        this.lastLog = "not supported yet"
+        logs.push("not supported yet")
         break
       case "descend":
-        this.lastLog = "not supported yet"
+        logs.push("not supported yet")
         break
       case "levelup":
-        this.lastLog = "not supported yet"
+        logs.push("not supported yet")
         break
       case "monster":
-        this.playerHitsFor = this.getDmgFrom(this.player)
-        noctis.send("attacking for", this.playerHitsFor)
+        this.playerHitsFor = Math.ceil(this.getDmgFrom(this.player))
+        currentCell.monsterHitsFor = Math.ceil(currentCell.monsterHitsFor) || Math.ceil(this.getDmgFrom(currentCell.roomType.monster))
+        logs.push(`you    : ${this.playerHitsFor} / ${this.player.health}`)
+        logs.push(`monster: ${currentCell.monsterHitsFor} / ${currentCell.roomType.monster.health}`)
+
         // do math here for who takes damage
         let calc = this.playerHitsFor - currentCell.monsterHitsFor
-        if (calc = 0) {
+        let dmg = Math.abs(calc)
+        if (calc == 0) {
           // tie
           let coin = !!lib.rand(1)
-          let dmg = lib.rand(1, 3)
+          dmg = lib.rand(1, 3)
           let msg = coin ? `both take ${dmg} damage` : "no damage taken"
           
-          noctis.send("tie!", msg)
+          logs.push(`tie! ${msg}`)
           
         } else
         if (calc > 0) {
           // player wins
-          let dmg = Math.abs(calc)
-          noctis.send(`dealt ${dmg} of damage to monster`)
+          logs.push(`dealt ${dmg} of damage to monster`)
           //@todo convert monster to new Monster()
           currentCell.roomType.monster.health -= dmg
           delete currentCell.monsterHitsFor
 
           if (currentCell.roomType.monster.health < 1) {
-            noctis.send(`killed monster!`)
+            logs.push(`killed monster!`)
             //@todo I need an inventory controller
-            this.player.money += currentCell.roomType.monster.reward.amount
+            this.player.money += currentCell.roomType.reward.amount
             currentCell.roomType.type = "empty"
             delete currentCell.roomType.monster.reward
           }
         } else {
           // monster wins
-          let dmg = Math.abs(calc)
-          noctis.send(`taken ${dmg} of damage from monster`)
+          logs.push(`taken ${dmg} of damage from monster`)
           this.player.hurt(dmg)
           
+          //@fixme this is wet (see above)
           if (this.player.health < 1) {
-            noctis.send(`died to monster!`)
+            logs.push(`died to monster!`)
             this.end()
           }
         }
         
         break
       case "fountain":
+        if (this.player.health == this.player.maxHealth) {
+          logs.push("already healed")
+        } else {
+          let healed = this.player.maxHealth - this.player.health
+          logs.push(`healed ${healed} back to ${this.player.maxHealth}`)
+        }
         this.player.heal(999)
-        // noctis.clearConsole(99)
         break
     }
 
@@ -216,13 +241,18 @@ let game = {
   print() {    
     // noctis.send(mapgen.showHex(" ", " "))
     // noctis.send(mapgen.showMap(" ", currentCell))
-    noctis.send("\n")
+    // noctis.send("\n")
+    noctis.clearConsole(20)
+
     noctis.send(mapgen.showHex(" ", " "))
     noctis.send("cell:", currentCell.hex)
     noctis.send("type:", currentCell.roomType)
     noctis.send("player:", game.player)
     noctis.send("\n")
-    noctis.send(game.lastLog)
+
+    let lastMsgs = logs.slice(-4)
+
+    noctis.send(lastMsgs)
   },
 
   getDmgFrom(entity) {
@@ -230,6 +260,8 @@ let game = {
   },
 
   end(){
+    logs.push(`Game over!`)
+    this.print()
     process.exit()
   }
 
